@@ -1,11 +1,8 @@
 
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Lexer {
-
-    
     private final String source;   
     private int    start   = 0;    
     private int    current = 0;    
