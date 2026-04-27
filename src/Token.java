@@ -1,5 +1,3 @@
-
-
 public class Token {
     public final TokenType type;    
     public final String    lexeme;  
@@ -9,6 +7,7 @@ public class Token {
         this.lexeme = lexeme;
         this.line   = line;
     }
+    
     @Override
     public String toString() {
         return String.format("Token{ type=%-18s  lexeme=%-15s  line=%d }",
