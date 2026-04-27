@@ -1,5 +1,3 @@
-
-
 public enum TokenType {
     TYPE_SHONGKHA,   
     TYPE_BAKKO,      

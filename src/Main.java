@@ -1,7 +1,6 @@
 import java.util.List;
 
 public class Main {
-
     public static void main(String[] args) {
         String validProgram =
                 "সংখ্যা বয়স = ৫;\n" +
