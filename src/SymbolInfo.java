@@ -1,8 +1,14 @@
 public class SymbolInfo {
-    private String type;
+    private final String name;
+    private final String type;
 
-    public SymbolInfo(String type) {
+    public SymbolInfo(String name, String type) {
+        this.name = name;
         this.type = type;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getType() {
