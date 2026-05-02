@@ -51,6 +51,13 @@ public class Main {
         Parser parser = new Parser(tokens);
         parser.parseProgram();
 
+        // NEW: AST preview block added here
+        System.out.println("========== AST Preview ==========");
+        for (StmtNode stmt : parser.getStatements()) {
+            System.out.println(stmt);
+        }
+        System.out.println("=================================");
+
         if (parser.hasErrors()) {
             System.out.println("সিনট্যাক্স ত্রুটি থাকায় সেমান্টিক বিশ্লেষণ শুরু হয়নি।");
             return;
