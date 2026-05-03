@@ -6,7 +6,6 @@ public class Parser {
     private int current = 0;
     private final List<String> errors = new ArrayList<>();
 
-    // Update: stores AST statements built during parsing
     private final List<StmtNode> statements = new ArrayList<>();
 
     private static class ParseError extends RuntimeException {
@@ -16,7 +15,9 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    public void parseProgram() {
+    public ProgramNode parseProgram() {
+        statements.clear();
+
         while (!isAtEnd()) {
             try {
                 StmtNode stmt = parseStatement();
@@ -33,6 +34,8 @@ public class Parser {
         } else {
             printErrors();
         }
+
+        return new ProgramNode(new ArrayList<>(statements));
     }
 
     public boolean hasErrors() {
@@ -43,7 +46,6 @@ public class Parser {
         return errors;
     }
 
-    // Update: getter for AST statements
     public List<StmtNode> getStatements() {
         return statements;
     }

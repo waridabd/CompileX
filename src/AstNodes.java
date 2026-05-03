@@ -40,6 +40,18 @@ class DeclarationNode extends StmtNode {
         this.expression = expression;
     }
 
+    public String getTypeName() {
+        return typeName;
+    }
+
+    public String getVariableName() {
+        return variableName;
+    }
+
+    public ExprNode getExpression() {
+        return expression;
+    }
+
     @Override
     public String toString() {
         return "DeclarationNode{type=" + typeName + ", name=" + variableName + ", expr=" + expression + "}";
@@ -53,6 +65,14 @@ class AssignmentNode extends StmtNode {
     public AssignmentNode(String variableName, ExprNode expression) {
         this.variableName = variableName;
         this.expression = expression;
+    }
+
+    public String getVariableName() {
+        return variableName;
+    }
+
+    public ExprNode getExpression() {
+        return expression;
     }
 
     @Override
@@ -75,6 +95,18 @@ class BinaryNode extends ExprNode {
         this.right = right;
     }
 
+    public ExprNode getLeft() {
+        return left;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public ExprNode getRight() {
+        return right;
+    }
+
     @Override
     public String toString() {
         return "(" + left + " " + operator + " " + right + ")";
@@ -88,6 +120,14 @@ class LiteralNode extends ExprNode {
     public LiteralNode(String value, TokenType literalType) {
         this.value = value;
         this.literalType = literalType;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
+    public TokenType getLiteralType() {
+        return literalType;
     }
 
     @Override
@@ -104,6 +144,10 @@ class VariableNode extends ExprNode {
 
     public VariableNode(String name) {
         this.name = name;
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override
