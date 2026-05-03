@@ -49,13 +49,10 @@ public class Main {
         }
 
         Parser parser = new Parser(tokens);
-        parser.parseProgram();
+        ProgramNode program = parser.parseProgram();
 
-        // NEW: AST preview block added here
         System.out.println("========== AST Preview ==========");
-        for (StmtNode stmt : parser.getStatements()) {
-            System.out.println(stmt);
-        }
+        System.out.println(program);
         System.out.println("=================================");
 
         if (parser.hasErrors()) {
