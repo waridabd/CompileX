@@ -5,6 +5,7 @@ public class Parser {
     private final List<Token> tokens;
     private int current = 0;
     private final List<String> errors = new ArrayList<>();
+    private final List<StmtNode> statements = new ArrayList<>();
 
     private static class ParseError extends RuntimeException {
     }
@@ -13,10 +14,17 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    public void parseProgram() {
+    public ProgramNode parseProgram() {
+        current = 0;
+        errors.clear();
+        statements.clear();
+
         while (!isAtEnd()) {
             try {
-                parseStatement();
+                StmtNode stmt = parseStatement();
+                if (stmt != null) {
+                    statements.add(stmt);
+                }
             } catch (ParseError e) {
                 synchronize();
             }
@@ -27,6 +35,8 @@ public class Parser {
         } else {
             printErrors();
         }
+
+        return new ProgramNode(new ArrayList<>(statements));
     }
 
     public boolean hasErrors() {
@@ -35,6 +45,10 @@ public class Parser {
 
     public List<String> getErrors() {
         return errors;
+    }
+
+    public List<StmtNode> getStatements() {
+        return statements;
     }
 
     private void printErrors() {
@@ -46,63 +60,82 @@ public class Parser {
         System.out.println("⚠ মোট সিনট্যাক্স ত্রুটির সংখ্যা: " + errors.size() + "\n");
     }
 
-    private void parseStatement() {
+    private StmtNode parseStatement() {
         if (check(TokenType.TYPE_SHONGKHA) || check(TokenType.TYPE_BAKKO)) {
-            parseDeclaration();
-            return;
+            return parseDeclaration();
         }
 
         if (check(TokenType.IDENTIFIER)) {
-            parseAssignment();
-            return;
+            return parseAssignment();
         }
 
         throw error(peek(), "আপনার সিনট্যাক্স ভুল");
     }
 
-    private void parseDeclaration() {
+    private DeclarationNode parseDeclaration() {
         if (!match(TokenType.TYPE_SHONGKHA, TokenType.TYPE_BAKKO)) {
             throw error(peek(), "সঠিক ডেটা টাইপ উল্লেখ করা প্রয়োজন");
         }
 
-        consume(TokenType.IDENTIFIER, "সঠিক আইডেন্টিফায়ার প্রদান করুন");
+        Token typeToken = previous();
+        Token nameToken = consume(TokenType.IDENTIFIER, "সঠিক আইডেন্টিফায়ার প্রদান করুন");
         consume(TokenType.ASSIGN, "সমান চিহ্ন (=) প্রদান করা আবশ্যক");
-        parseExpression();
+        ExprNode expression = parseExpression();
         consume(TokenType.SEMICOLON, "স্টেটমেন্টের শেষে সেমিকোলন (;) প্রদান করুন");
+
+        return new DeclarationNode(typeToken.lexeme, nameToken.lexeme, expression);
     }
 
-    private void parseAssignment() {
-        consume(TokenType.IDENTIFIER, "সঠিক আইডেন্টিফায়ার প্রদান করুন");
+    private AssignmentNode parseAssignment() {
+        Token nameToken = consume(TokenType.IDENTIFIER, "সঠিক আইডেন্টিফায়ার প্রদান করুন");
         consume(TokenType.ASSIGN, "সমান চিহ্ন (=) প্রদান করা আবশ্যক");
-        parseExpression();
+        ExprNode expression = parseExpression();
         consume(TokenType.SEMICOLON, "স্টেটমেন্টের শেষে সেমিকোলন (;) প্রদান করুন");
+
+        return new AssignmentNode(nameToken.lexeme, expression);
     }
 
-    private void parseExpression() {
-        parseTerm();
+    private ExprNode parseExpression() {
+        ExprNode expr = parseTerm();
 
         while (match(TokenType.PLUS, TokenType.MINUS)) {
-            parseTerm();
+            Token operator = previous();
+            ExprNode right = parseTerm();
+            expr = new BinaryNode(expr, operator.lexeme, right);
         }
+
+        return expr;
     }
 
-    private void parseTerm() {
-        parseFactor();
+    private ExprNode parseTerm() {
+        ExprNode expr = parseFactor();
 
         while (match(TokenType.MULTIPLY, TokenType.DIVIDE)) {
-            parseFactor();
+            Token operator = previous();
+            ExprNode right = parseFactor();
+            expr = new BinaryNode(expr, operator.lexeme, right);
         }
+
+        return expr;
     }
 
-    private void parseFactor() {
-        if (match(TokenType.NUMBER, TokenType.STRING, TokenType.IDENTIFIER)) {
-            return;
+    private ExprNode parseFactor() {
+        if (match(TokenType.NUMBER)) {
+            return new LiteralNode(previous().lexeme, TokenType.NUMBER);
+        }
+
+        if (match(TokenType.STRING)) {
+            return new LiteralNode(previous().lexeme, TokenType.STRING);
+        }
+
+        if (match(TokenType.IDENTIFIER)) {
+            return new VariableNode(previous().lexeme);
         }
 
         if (match(TokenType.LPAREN)) {
-            parseExpression();
+            ExprNode expr = parseExpression();
             consume(TokenType.RPAREN, "বন্ধনী সঠিকভাবে সম্পূর্ণ হয়নি");
-            return;
+            return expr;
         }
 
         throw error(peek(), "এক্সপ্রেশনটি সঠিক নয়");
