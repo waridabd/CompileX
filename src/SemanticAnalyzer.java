@@ -7,19 +7,28 @@ public class SemanticAnalyzer {
     }
 
     public void analyze() {
-        try {
-            for (StmtNode stmt : program.getStatements()) {
-                if (stmt instanceof DeclarationNode) {
-                    analyzeDeclaration((DeclarationNode) stmt);
-                } else if (stmt instanceof AssignmentNode) {
-                    analyzeAssignment((AssignmentNode) stmt);
-                }
+
+        for (StmtNode stmt : program.statements) {
+            try {
+                analyzeStatement(stmt);
+            } catch (RuntimeException e) {
+                errors.add(e.getMessage());
             }
 
-            System.out.println("✓ সেমান্টিক বিশ্লেষণ সফলভাবে সম্পন্ন হয়েছে।");
-        } catch (RuntimeException e) {
-            System.out.println("✗ সেমান্টিক ত্রুটি: " + e.getMessage());
+        System.out.println("\n========== Semantic Analysis ==========");
+
+        if (errors.isEmpty()) {
+            System.out.println("✓ কোনো সেমান্টিক ত্রুটি নেই।");
+        } else {
+            for (String error : errors) {
+                System.out.println(error);
+            }
+            System.out.println("⚠ মোট সেমান্টিক ত্রুটি: " + errors.size());
         }
+
+        System.out.println("=======================================\n");
+
+        symbolTable.printTable();
     }
 
     private void analyzeDeclaration(DeclarationNode node) {
@@ -27,36 +36,55 @@ public class SemanticAnalyzer {
         String declaredType = node.getTypeName();
         ExprNode expr = node.getExpression();
 
-        if (symbolTable.exists(varName)) {
-            throw new RuntimeException("ডুপ্লিকেট ডিক্লারেশন -> " + varName);
+    private void analyzeStatement(StmtNode stmt) {
+
+        if (stmt instanceof DeclarationNode) {
+            analyzeDeclaration((DeclarationNode) stmt);
+            return;
         }
 
-        String exprType = evaluateExpression(expr);
+        if (stmt instanceof AssignmentNode) {
+            analyzeAssignment((AssignmentNode) stmt);
+            return;
+        }
 
-        if (!declaredType.equals(exprType)) {
-            throw new RuntimeException("টাইপ মেলেনি -> " + varName);
+        throw new RuntimeException("অবৈধ স্টেটমেন্ট");
+    }
+
+    private void analyzeDeclaration(DeclarationNode node) {
+
+        String exprType = evaluate(node.value);
+
+        if (!node.type.equals(exprType)) {
+            throw new RuntimeException(
+                    "টাইপ মেলেনি -> " + node.name +
+                    " expected: " + node.type +
+                    " but found: " + exprType
+            );
         }
 
         symbolTable.declare(varName, declaredType);
     }
 
     private void analyzeAssignment(AssignmentNode node) {
-        String varName = node.getVariableName();
-        ExprNode expr = node.getExpression();
 
-        if (!symbolTable.exists(varName)) {
-            throw new RuntimeException("ঘোষণা করা হয়নি -> " + varName);
+        if (!symbolTable.exists(node.name)) {
+            throw new RuntimeException("আগে ঘোষণা করা হয়নি -> " + node.name);
         }
 
-        String exprType = evaluateExpression(expr);
-        String varType = symbolTable.getType(varName);
+        String exprType = evaluate(node.value);
+        String varType = symbolTable.getType(node.name);
 
         if (!varType.equals(exprType)) {
-            throw new RuntimeException("ভুল টাইপ assign -> " + varName);
+            throw new RuntimeException(
+                    node.name + " এ ভুল টাইপ assign -> expected " +
+                    varType + " but found " + exprType
+            );
         }
     }
 
-    private String evaluateExpression(ExprNode expr) {
+    private String evaluate(ExprNode expr) {
+
         if (expr instanceof LiteralNode) {
             LiteralNode literal = (LiteralNode) expr;
 
@@ -80,13 +108,14 @@ public class SemanticAnalyzer {
         }
 
         if (expr instanceof BinaryNode) {
-            BinaryNode bin = (BinaryNode) expr;
 
-            String leftType = evaluateExpression(bin.getLeft());
-            String rightType = evaluateExpression(bin.getRight());
+            BinaryNode b = (BinaryNode) expr;
 
-            if (!leftType.equals("সংখ্যা") || !rightType.equals("সংখ্যা")) {
-                throw new RuntimeException("শুধু সংখ্যা টাইপে arithmetic করা যাবে");
+            String left = evaluate(b.left);
+            String right = evaluate(b.right);
+
+            if (!left.equals("সংখ্যা") || !right.equals("সংখ্যা")) {
+                throw new RuntimeException("Arithmetic শুধু সংখ্যা টাইপের জন্য");
             }
 
             return "সংখ্যা";

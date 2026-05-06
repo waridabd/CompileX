@@ -1,16 +1,15 @@
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class Lexer {
-    private final String source;   
-    private int    start   = 0;    
-    private int    current = 0;    
-    private int    line    = 1;    
+    private final String source;
+    private int start   = 0;
+    private int current = 0;
+    private int line    = 1;
 
-    
     private final List<Token>  tokens = new ArrayList<>();
     private final List<String> errors = new ArrayList<>();
+
     private static final java.util.Map<String, TokenType> KEYWORDS =
         new java.util.HashMap<>();
 
@@ -18,6 +17,7 @@ public class Lexer {
         KEYWORDS.put("সংখ্যা", TokenType.TYPE_SHONGKHA);
         KEYWORDS.put("বাক্য",  TokenType.TYPE_BAKKO);
     }
+
     public Lexer(String source) {
         this.source = source;
     }
@@ -31,21 +31,12 @@ public class Lexer {
         return tokens;
     }
 
-    public boolean hasErrors() {
-        return !errors.isEmpty();
-    }
-
-    public List<String> getErrors() {
-        return errors;
-    }
-
+    public boolean hasErrors()       { return !errors.isEmpty(); }
+    public List<String> getErrors()  { return errors; }
 
     private void scanToken() {
         char c = advance();
-
         switch (c) {
-
-        
             case '=': addToken(TokenType.ASSIGN);    break;
             case '+': addToken(TokenType.PLUS);      break;
             case '-': addToken(TokenType.MINUS);     break;
@@ -54,11 +45,9 @@ public class Lexer {
             case ';': addToken(TokenType.SEMICOLON); break;
             case '(': addToken(TokenType.LPAREN);    break;
             case ')': addToken(TokenType.RPAREN);    break;
-
-        
+            case '{': addToken(TokenType.LBRACE);    break;
+            case '}': addToken(TokenType.RBRACE);    break;
             case '"': scanString(); break;
-
-            
             case ' ':
             case '\r':
             case '\t':
@@ -66,86 +55,66 @@ public class Lexer {
             case '\n':
                 line++;
                 break;
-
-            
             default:
                 if (isBanglaDigit(c)) {
                     scanNumber();
                 } else if (isBanglaLetterStart(c)) {
                     scanIdentifierOrKeyword();
                 } else {
-                    
                     lexError("অপরিচিত অক্ষর (unexpected character): '" + c + "'");
                 }
                 break;
         }
     }
 
-    
     private void scanNumber() {
         while (!isAtEnd() && isBanglaDigit(peek())) advance();
-        addToken(TokenType.NUMBER);
+        String banglaLexeme = source.substring(start, current);
+        String asciiValue   = BanglaNumberUtil.toAsciiDigits(banglaLexeme);
+        tokens.add(new Token(TokenType.NUMBER, banglaLexeme, asciiValue, line));
     }
 
     private void scanIdentifierOrKeyword() {
         while (!isAtEnd() && isBanglaLetterContinue(peek())) advance();
-
-        String word = source.substring(start, current);
-
+        String word    = source.substring(start, current);
         TokenType type = KEYWORDS.getOrDefault(word, TokenType.IDENTIFIER);
         addToken(type);
     }
 
-
     private void scanString() {
         while (!isAtEnd() && peek() != '"') {
-            if (peek() == '\n') line++;  
+            if (peek() == '\n') line++;
             advance();
         }
-
         if (isAtEnd()) {
             lexError("স্ট্রিং শেষ হয়নি (unterminated string literal)");
             return;
         }
-
-        advance(); 
-
-        String value = source.substring(start + 1, current - 1);
-        tokens.add(new Token(TokenType.STRING, value, line));
-        return;
+        advance();
+        String cleanValue = source.substring(start + 1, current - 1);
+        tokens.add(new Token(TokenType.STRING, cleanValue, cleanValue, line));
     }
-
 
     private boolean isBanglaDigit(char c) {
         return c >= '\u09E6' && c <= '\u09EF';
     }
 
-    
     private boolean isBanglaLetterStart(char c) {
         return c >= '\u0980' && c <= '\u09FF';
     }
-
 
     private boolean isBanglaLetterContinue(char c) {
         return isBanglaLetterStart(c);
     }
 
+    private char advance()  { return source.charAt(current++); }
 
-    private char advance() {
-        return source.charAt(current++);
-    }
-
-    
     private char peek() {
         if (isAtEnd()) return '\0';
         return source.charAt(current);
     }
 
-    
-    private boolean isAtEnd() {
-        return current >= source.length();
-    }
-
+    private boolean isAtEnd() { return current >= source.length(); }
 
     private void addToken(TokenType type) {
         String lexeme = source.substring(start, current);
