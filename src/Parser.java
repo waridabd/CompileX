@@ -5,7 +5,6 @@ public class Parser {
     private final List<Token> tokens;
     private int current = 0;
     private final List<String> errors = new ArrayList<>();
-
     private final List<StmtNode> statements = new ArrayList<>();
 
     private static class ParseError extends RuntimeException {
@@ -16,6 +15,8 @@ public class Parser {
     }
 
     public ProgramNode parseProgram() {
+        current = 0;
+        errors.clear();
         statements.clear();
 
         while (!isAtEnd()) {
