@@ -22,6 +22,10 @@ public class SymbolTable {
         return table.containsKey(name);
     }
 
+    public String getType(String name) {
+        return lookup(name).getType();
+    }
+
     public void printTable() {
         System.out.println("\n========== Symbol Table ==========");
         if (table.isEmpty()) {
