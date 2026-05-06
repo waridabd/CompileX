@@ -1,11 +1,6 @@
-import java.util.ArrayList;
-import java.util.List;
-
 public class SemanticAnalyzer {
-
     private final ProgramNode program;
     private final SymbolTable symbolTable = new SymbolTable();
-    private final List<String> errors = new ArrayList<>();
 
     public SemanticAnalyzer(ProgramNode program) {
         this.program = program;
@@ -19,7 +14,6 @@ public class SemanticAnalyzer {
             } catch (RuntimeException e) {
                 errors.add(e.getMessage());
             }
-        }
 
         System.out.println("\n========== Semantic Analysis ==========");
 
@@ -37,9 +31,10 @@ public class SemanticAnalyzer {
         symbolTable.printTable();
     }
 
-    public boolean hasErrors() {
-        return !errors.isEmpty();
-    }
+    private void analyzeDeclaration(DeclarationNode node) {
+        String varName = node.getVariableName();
+        String declaredType = node.getTypeName();
+        ExprNode expr = node.getExpression();
 
     private void analyzeStatement(StmtNode stmt) {
 
@@ -68,7 +63,7 @@ public class SemanticAnalyzer {
             );
         }
 
-        symbolTable.declare(node.name, node.type);
+        symbolTable.declare(varName, declaredType);
     }
 
     private void analyzeAssignment(AssignmentNode node) {
@@ -91,14 +86,25 @@ public class SemanticAnalyzer {
     private String evaluate(ExprNode expr) {
 
         if (expr instanceof LiteralNode) {
-            Object val = ((LiteralNode) expr).value;
+            LiteralNode literal = (LiteralNode) expr;
 
-            if (val instanceof Double) return "সংখ্যা";
-            if (val instanceof String) return "বাক্য";
+            if (literal.getLiteralType() == TokenType.NUMBER) {
+                return "সংখ্যা";
+            }
+
+            if (literal.getLiteralType() == TokenType.STRING) {
+                return "বাক্য";
+            }
         }
 
         if (expr instanceof VariableNode) {
-            return symbolTable.getType(((VariableNode) expr).name);
+            VariableNode var = (VariableNode) expr;
+
+            if (!symbolTable.exists(var.getName())) {
+                throw new RuntimeException("ঘোষণা করা হয়নি -> " + var.getName());
+            }
+
+            return symbolTable.getType(var.getName());
         }
 
         if (expr instanceof BinaryNode) {
@@ -115,6 +121,6 @@ public class SemanticAnalyzer {
             return "সংখ্যা";
         }
 
-        return "";
+        throw new RuntimeException("অজানা এক্সপ্রেশন টাইপ");
     }
 }

@@ -61,7 +61,7 @@ public class Main {
             return;
         }
 
-        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(tokens);
+        SemanticAnalyzer semanticAnalyzer = new SemanticAnalyzer(program);
         semanticAnalyzer.analyze();
 
         if (generateCode) {
