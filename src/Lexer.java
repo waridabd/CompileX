@@ -3,19 +3,19 @@ import java.util.List;
 
 public class Lexer {
     private final String source;
-    private int start   = 0;
+    private int start = 0;
     private int current = 0;
-    private int line    = 1;
+    private int line = 1;
 
-    private final List<Token>  tokens = new ArrayList<>();
+    private final List<Token> tokens = new ArrayList<>();
     private final List<String> errors = new ArrayList<>();
 
     private static final java.util.Map<String, TokenType> KEYWORDS =
-        new java.util.HashMap<>();
+            new java.util.HashMap<>();
 
     static {
         KEYWORDS.put("সংখ্যা", TokenType.TYPE_SHONGKHA);
-        KEYWORDS.put("বাক্য",  TokenType.TYPE_BAKKO);
+        KEYWORDS.put("বাক্য", TokenType.TYPE_BAKKO);
     }
 
     public Lexer(String source) {
@@ -23,31 +23,60 @@ public class Lexer {
     }
 
     public List<Token> tokenize() {
+        tokens.clear();
+        errors.clear();
+        start = 0;
+        current = 0;
+        line = 1;
+
         while (!isAtEnd()) {
             start = current;
             scanToken();
         }
+
         tokens.add(new Token(TokenType.EOF, "", line));
         return tokens;
     }
 
-    public boolean hasErrors()       { return !errors.isEmpty(); }
-    public List<String> getErrors()  { return errors; }
+    public boolean hasErrors() {
+        return !errors.isEmpty();
+    }
+
+    public List<String> getErrors() {
+        return errors;
+    }
 
     private void scanToken() {
         char c = advance();
+
         switch (c) {
-            case '=': addToken(TokenType.ASSIGN);    break;
-            case '+': addToken(TokenType.PLUS);      break;
-            case '-': addToken(TokenType.MINUS);     break;
-            case '*': addToken(TokenType.MULTIPLY);  break;
-            case '/': addToken(TokenType.DIVIDE);    break;
-            case ';': addToken(TokenType.SEMICOLON); break;
-            case '(': addToken(TokenType.LPAREN);    break;
-            case ')': addToken(TokenType.RPAREN);    break;
-            case '{': addToken(TokenType.LBRACE);    break;
-            case '}': addToken(TokenType.RBRACE);    break;
-            case '"': scanString(); break;
+            case '=':
+                addToken(TokenType.ASSIGN);
+                break;
+            case '+':
+                addToken(TokenType.PLUS);
+                break;
+            case '-':
+                addToken(TokenType.MINUS);
+                break;
+            case '*':
+                addToken(TokenType.MULTIPLY);
+                break;
+            case '/':
+                addToken(TokenType.DIVIDE);
+                break;
+            case ';':
+                addToken(TokenType.SEMICOLON);
+                break;
+            case '(':
+                addToken(TokenType.LPAREN);
+                break;
+            case ')':
+                addToken(TokenType.RPAREN);
+                break;
+            case '"':
+                scanString();
+                break;
             case ' ':
             case '\r':
             case '\t':
@@ -68,31 +97,41 @@ public class Lexer {
     }
 
     private void scanNumber() {
-        while (!isAtEnd() && isBanglaDigit(peek())) advance();
+        while (!isAtEnd() && isBanglaDigit(peek())) {
+            advance();
+        }
+
         String banglaLexeme = source.substring(start, current);
-        String asciiValue   = BanglaNumberUtil.toAsciiDigits(banglaLexeme);
-        tokens.add(new Token(TokenType.NUMBER, banglaLexeme, asciiValue, line));
+        tokens.add(new Token(TokenType.NUMBER, banglaLexeme, line));
     }
 
     private void scanIdentifierOrKeyword() {
-        while (!isAtEnd() && isBanglaLetterContinue(peek())) advance();
-        String word    = source.substring(start, current);
+        while (!isAtEnd() && isBanglaLetterContinue(peek())) {
+            advance();
+        }
+
+        String word = source.substring(start, current);
         TokenType type = KEYWORDS.getOrDefault(word, TokenType.IDENTIFIER);
-        addToken(type);
+        tokens.add(new Token(type, word, line));
     }
 
     private void scanString() {
         while (!isAtEnd() && peek() != '"') {
-            if (peek() == '\n') line++;
+            if (peek() == '\n') {
+                line++;
+            }
             advance();
         }
+
         if (isAtEnd()) {
             lexError("স্ট্রিং শেষ হয়নি (unterminated string literal)");
             return;
         }
+
         advance();
+
         String cleanValue = source.substring(start + 1, current - 1);
-        tokens.add(new Token(TokenType.STRING, cleanValue, cleanValue, line));
+        tokens.add(new Token(TokenType.STRING, cleanValue, line));
     }
 
     private boolean isBanglaDigit(char c) {
@@ -104,17 +143,21 @@ public class Lexer {
     }
 
     private boolean isBanglaLetterContinue(char c) {
-        return isBanglaLetterStart(c);
+        return isBanglaLetterStart(c) || isBanglaDigit(c);
     }
 
-    private char advance()  { return source.charAt(current++); }
+    private char advance() {
+        return source.charAt(current++);
+    }
 
     private char peek() {
         if (isAtEnd()) return '\0';
         return source.charAt(current);
     }
 
-    private boolean isAtEnd() { return current >= source.length(); }
+    private boolean isAtEnd() {
+        return current >= source.length();
+    }
 
     private void addToken(TokenType type) {
         String lexeme = source.substring(start, current);
@@ -136,7 +179,9 @@ public class Lexer {
 
         if (hasErrors()) {
             System.out.println("⚠  মোট লেক্সিকাল ত্রুটি: " + errors.size());
-            for (String e : errors) System.out.println("   " + e);
+            for (String e : errors) {
+                System.out.println("   " + e);
+            }
         } else {
             System.out.println("✓  কোনো লেক্সিকাল ত্রুটি পাওয়া যায়নি।");
         }
