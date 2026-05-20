@@ -15,7 +15,9 @@ public class Lexer {
 
     static {
         KEYWORDS.put("সংখ্যা", TokenType.TYPE_SHONGKHA);
-        KEYWORDS.put("বাক্য", TokenType.TYPE_BAKKO);
+        KEYWORDS.put("বাক্য",  TokenType.TYPE_BAKKO);
+        KEYWORDS.put("যদি",   TokenType.IF);
+        KEYWORDS.put("নাহয়",  TokenType.ELSE);
     }
 
     public Lexer(String source) {
@@ -51,32 +53,31 @@ public class Lexer {
 
         switch (c) {
             case '=':
-                addToken(TokenType.ASSIGN);
+                if (match('=')) addToken(TokenType.EQ);
+                else            addToken(TokenType.ASSIGN);
                 break;
-            case '+':
-                addToken(TokenType.PLUS);
+            case '!':
+                if (match('=')) addToken(TokenType.NEQ);
+                else lexError("অপরিচিত অক্ষর (unexpected character): '!'");
                 break;
-            case '-':
-                addToken(TokenType.MINUS);
+            case '<':
+                if (match('=')) addToken(TokenType.LTE);
+                else            addToken(TokenType.LT);
                 break;
-            case '*':
-                addToken(TokenType.MULTIPLY);
+            case '>':
+                if (match('=')) addToken(TokenType.GTE);
+                else            addToken(TokenType.GT);
                 break;
-            case '/':
-                addToken(TokenType.DIVIDE);
-                break;
-            case ';':
-                addToken(TokenType.SEMICOLON);
-                break;
-            case '(':
-                addToken(TokenType.LPAREN);
-                break;
-            case ')':
-                addToken(TokenType.RPAREN);
-                break;
-            case '"':
-                scanString();
-                break;
+            case '+': addToken(TokenType.PLUS);      break;
+            case '-': addToken(TokenType.MINUS);     break;
+            case '*': addToken(TokenType.MULTIPLY);  break;
+            case '/': addToken(TokenType.DIVIDE);    break;
+            case ';': addToken(TokenType.SEMICOLON); break;
+            case '(': addToken(TokenType.LPAREN);    break;
+            case ')': addToken(TokenType.RPAREN);    break;
+            case '{': addToken(TokenType.LBRACE);    break;
+            case '}': addToken(TokenType.RBRACE);    break;
+            case '"': scanString(); break;
             case ' ':
             case '\r':
             case '\t':
@@ -97,41 +98,31 @@ public class Lexer {
     }
 
     private void scanNumber() {
-        while (!isAtEnd() && isBanglaDigit(peek())) {
-            advance();
-        }
-
+        while (!isAtEnd() && isBanglaDigit(peek())) advance();
         String banglaLexeme = source.substring(start, current);
-        tokens.add(new Token(TokenType.NUMBER, banglaLexeme, line));
+        String asciiValue   = BanglaNumberUtil.toAsciiDigits(banglaLexeme);
+        tokens.add(new Token(TokenType.NUMBER, banglaLexeme, asciiValue, line));
     }
 
     private void scanIdentifierOrKeyword() {
-        while (!isAtEnd() && isBanglaLetterContinue(peek())) {
-            advance();
-        }
-
-        String word = source.substring(start, current);
+        while (!isAtEnd() && isBanglaLetterContinue(peek())) advance();
+        String word    = source.substring(start, current);
         TokenType type = KEYWORDS.getOrDefault(word, TokenType.IDENTIFIER);
         tokens.add(new Token(type, word, line));
     }
 
     private void scanString() {
         while (!isAtEnd() && peek() != '"') {
-            if (peek() == '\n') {
-                line++;
-            }
+            if (peek() == '\n') line++;
             advance();
         }
-
         if (isAtEnd()) {
             lexError("স্ট্রিং শেষ হয়নি (unterminated string literal)");
             return;
         }
-
         advance();
-
         String cleanValue = source.substring(start + 1, current - 1);
-        tokens.add(new Token(TokenType.STRING, cleanValue, line));
+        tokens.add(new Token(TokenType.STRING, cleanValue, cleanValue, line));
     }
 
     private boolean isBanglaDigit(char c) {
@@ -155,6 +146,13 @@ public class Lexer {
         return source.charAt(current);
     }
 
+    private boolean match(char expected) {
+        if (isAtEnd()) return false;
+        if (source.charAt(current) != expected) return false;
+        current++;
+        return true;
+    }
+
     private boolean isAtEnd() {
         return current >= source.length();
     }
@@ -171,17 +169,15 @@ public class Lexer {
     }
 
     public void printTokens() {
-        System.out.println("\n══════════  টোকেন তালিকা (Token List)  ══════════");
+        System.out.println("\n════ টোকেন তালিকা (Token List)  ═════");
         for (Token t : tokens) {
             System.out.println(t);
         }
-        System.out.println("══════════════════════════════════════════════════\n");
+        System.out.println("══════════════\n");
 
         if (hasErrors()) {
             System.out.println("⚠  মোট লেক্সিকাল ত্রুটি: " + errors.size());
-            for (String e : errors) {
-                System.out.println("   " + e);
-            }
+            for (String e : errors) System.out.println("   " + e);
         } else {
             System.out.println("✓  কোনো লেক্সিকাল ত্রুটি পাওয়া যায়নি।");
         }
