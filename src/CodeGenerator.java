@@ -2,9 +2,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class CodeGenerator {
     private final String className;
+    private int indentLevel = 2;
 
     public CodeGenerator() {
         this("GeneratedProgram");
@@ -20,6 +22,7 @@ public class CodeGenerator {
 
     public String generate(ProgramNode program) {
         StringBuilder sb = new StringBuilder();
+        indentLevel = 2;
 
         sb.append("public class ").append(className).append(" {\n");
         sb.append("    public static void main(String[] args) {\n");
@@ -47,12 +50,16 @@ public class CodeGenerator {
             return generateAssignment((AssignmentNode) stmt);
         }
 
+        if (stmt instanceof IfNode) {
+            return generateIf((IfNode) stmt);
+        }
+
         throw new IllegalArgumentException("Unknown statement type: " + stmt.getClass().getSimpleName());
     }
 
     private String generateDeclaration(DeclarationNode node) {
         String javaType = mapType(node.getTypeName());
-        String javaName = toJavaIdentifier(node.getVariableName());
+        String javaName = node.getVariableName();
         String initializer;
 
         if (node.getExpression() != null) {
@@ -61,19 +68,47 @@ public class CodeGenerator {
             initializer = defaultValue(node.getTypeName());
         }
 
-        return "        " + javaType + " " + javaName + " = " + initializer + ";\n";
+        return indent() + javaType + " " + javaName + " = " + initializer + ";\n";
     }
 
     private String generateAssignment(AssignmentNode node) {
-        String javaName = toJavaIdentifier(node.getVariableName());
+        String javaName = node.getVariableName();
         String javaExpr = generateExpression(node.getExpression());
-        return "        " + javaName + " = " + javaExpr + ";\n";
+        return indent() + javaName + " = " + javaExpr + ";\n";
+    }
+
+    private String generateIf(IfNode node) {
+        StringBuilder sb = new StringBuilder();
+
+        String condition = generateExpression(node.getCondition());
+        sb.append(indent()).append("if (").append(condition).append(") {\n");
+
+        indentLevel++;
+        for (StmtNode stmt : node.getThenBranch()) {
+            sb.append(generateStatement(stmt));
+        }
+        indentLevel--;
+
+        sb.append(indent()).append("}");
+
+        if (node.hasElse()) {
+            sb.append(" else {\n");
+            indentLevel++;
+            for (StmtNode stmt : node.getElseBranch()) {
+                sb.append(generateStatement(stmt));
+            }
+            indentLevel--;
+            sb.append(indent()).append("}");
+        }
+
+        sb.append("\n");
+        return sb.toString();
     }
 
     private String generateExpression(ExprNode expr) {
         if (expr instanceof BinaryNode) {
             BinaryNode node = (BinaryNode) expr;
-            String left = generateExpression(node.getLeft());
+            String left  = generateExpression(node.getLeft());
             String right = generateExpression(node.getRight());
             return "(" + left + " " + node.getOperator() + " " + right + ")";
         }
@@ -83,7 +118,7 @@ public class CodeGenerator {
         }
 
         if (expr instanceof VariableNode) {
-            return toJavaIdentifier(((VariableNode) expr).getName());
+            return ((VariableNode) expr).getName();
         }
 
         throw new IllegalArgumentException("Unknown expression type: " + expr.getClass().getSimpleName());
@@ -91,8 +126,7 @@ public class CodeGenerator {
 
     private String generateLiteral(LiteralNode node) {
         if (node.getLiteralType() == TokenType.STRING) {
-            String raw = stripQuotes(node.getValue());
-            return "\"" + escapeJavaString(raw) + "\"";
+            return "\"" + escapeJavaString(node.getValue()) + "\"";
         }
 
         if (node.getLiteralType() == TokenType.NUMBER) {
@@ -103,43 +137,23 @@ public class CodeGenerator {
     }
 
     private String mapType(String banglaType) {
-        if ("সংখ্যা".equals(banglaType)) {
-            return "double";
-        }
-
-        if ("বাক্য".equals(banglaType)) {
-            return "String";
-        }
-
+        if ("সংখ্যা".equals(banglaType)) return "double";
+        if ("বাক্য".equals(banglaType))  return "String";
         throw new IllegalArgumentException("Unsupported Bangla type: " + banglaType);
     }
 
     private String defaultValue(String banglaType) {
-        if ("সংখ্যা".equals(banglaType)) {
-            return "0";
-        }
-
-        if ("বাক্য".equals(banglaType)) {
-            return "\"\"";
-        }
-
+        if ("সংখ্যা".equals(banglaType)) return "0";
+        if ("বাক্য".equals(banglaType))  return "\"\"";
         return "null";
     }
 
-    private String toJavaIdentifier(String name) {
-        return name;
-    }
-
-    private String stripQuotes(String value) {
-        if (value == null) {
-            return "";
+    private String indent() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < indentLevel; i++) {
+            sb.append("    ");
         }
-
-        if (value.length() >= 2 && value.startsWith("\"") && value.endsWith("\"")) {
-            return value.substring(1, value.length() - 1);
-        }
-
-        return value;
+        return sb.toString();
     }
 
     private String escapeJavaString(String value) {
@@ -151,28 +165,15 @@ public class CodeGenerator {
     }
 
     private String normalizeBanglaDigits(String input) {
-        if (input == null) {
-            return "";
-        }
-
+        if (input == null) return "";
         StringBuilder sb = new StringBuilder();
-
         for (char ch : input.toCharArray()) {
-            switch (ch) {
-                case '০': sb.append('0'); break;
-                case '১': sb.append('1'); break;
-                case '২': sb.append('2'); break;
-                case '৩': sb.append('3'); break;
-                case '৪': sb.append('4'); break;
-                case '৫': sb.append('5'); break;
-                case '৬': sb.append('6'); break;
-                case '৭': sb.append('7'); break;
-                case '৮': sb.append('8'); break;
-                case '৯': sb.append('9'); break;
-                default: sb.append(ch);
+            if (ch >= '\u09E6' && ch <= '\u09EF') {
+                sb.append((char) ('0' + (ch - '\u09E6')));
+            } else {
+                sb.append(ch);
             }
         }
-
         return sb.toString();
     }
 }

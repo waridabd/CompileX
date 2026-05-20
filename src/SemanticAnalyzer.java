@@ -1,6 +1,8 @@
+import java.util.List;
+
 public class SemanticAnalyzer {
     private final ProgramNode program;
-    private final SymbolTable symbolTable = new SymbolTable();
+    private SymbolTable symbolTable = new SymbolTable();
 
     public SemanticAnalyzer(ProgramNode program) {
         this.program = program;
@@ -8,17 +10,22 @@ public class SemanticAnalyzer {
 
     public void analyze() {
         try {
-            for (StmtNode stmt : program.getStatements()) {
-                if (stmt instanceof DeclarationNode) {
-                    analyzeDeclaration((DeclarationNode) stmt);
-                } else if (stmt instanceof AssignmentNode) {
-                    analyzeAssignment((AssignmentNode) stmt);
-                }
-            }
-
+            analyzeStatements(program.getStatements());
             System.out.println("✓ সেমান্টিক বিশ্লেষণ সফলভাবে সম্পন্ন হয়েছে।");
         } catch (RuntimeException e) {
             System.out.println("✗ সেমান্টিক ত্রুটি: " + e.getMessage());
+        }
+    }
+
+    private void analyzeStatements(List<StmtNode> statements) {
+        for (StmtNode stmt : statements) {
+            if (stmt instanceof DeclarationNode) {
+                analyzeDeclaration((DeclarationNode) stmt);
+            } else if (stmt instanceof AssignmentNode) {
+                analyzeAssignment((AssignmentNode) stmt);
+            } else if (stmt instanceof IfNode) {
+                analyzeIf((IfNode) stmt);
+            }
         }
     }
 
@@ -45,7 +52,7 @@ public class SemanticAnalyzer {
         ExprNode expr = node.getExpression();
 
         if (!symbolTable.exists(varName)) {
-            throw new RuntimeException("ঘোষণা করা হয়নি -> " + varName);
+            throw new RuntimeException("ঘোষণা করা হয়নি -> " + varName);
         }
 
         String exprType = evaluateExpression(expr);
@@ -54,6 +61,48 @@ public class SemanticAnalyzer {
         if (!varType.equals(exprType)) {
             throw new RuntimeException("ভুল টাইপ assign -> " + varName);
         }
+    }
+
+    private void analyzeIf(IfNode node) {
+        String condType = evaluateCondition(node.getCondition());
+        if (!condType.equals("boolean")) {
+            throw new RuntimeException("if-এর শর্তটি boolean হওয়া প্রয়োজন");
+        }
+
+        SymbolTable savedTable = symbolTable;
+
+        symbolTable = new SymbolTable(savedTable);
+        analyzeStatements(node.getThenBranch());
+
+        if (node.hasElse()) {
+            symbolTable = new SymbolTable(savedTable);
+            analyzeStatements(node.getElseBranch());
+        }
+
+        symbolTable = savedTable;
+    }
+
+    private String evaluateCondition(ExprNode expr) {
+        if (expr instanceof BinaryNode) {
+            BinaryNode bin = (BinaryNode) expr;
+            String op = bin.getOperator();
+
+            if (op.equals("==") || op.equals("!=") ||
+                op.equals("<")  || op.equals(">")  ||
+                op.equals("<=") || op.equals(">=")) {
+
+                String leftType  = evaluateExpression(bin.getLeft());
+                String rightType = evaluateExpression(bin.getRight());
+
+                if (!leftType.equals(rightType)) {
+                    throw new RuntimeException("শর্তে দুই পাশের টাইপ একই হওয়া প্রয়োজন");
+                }
+
+                return "boolean";
+            }
+        }
+
+        throw new RuntimeException("if-এর শর্তে তুলনামূলক অপারেটর (==, !=, <, >, <=, >=) প্রয়োজন");
     }
 
     private String evaluateExpression(ExprNode expr) {
@@ -73,7 +122,7 @@ public class SemanticAnalyzer {
             VariableNode var = (VariableNode) expr;
 
             if (!symbolTable.exists(var.getName())) {
-                throw new RuntimeException("ঘোষণা করা হয়নি -> " + var.getName());
+                throw new RuntimeException("ঘোষণা করা হয়নি -> " + var.getName());
             }
 
             return symbolTable.getType(var.getName());
@@ -82,7 +131,7 @@ public class SemanticAnalyzer {
         if (expr instanceof BinaryNode) {
             BinaryNode bin = (BinaryNode) expr;
 
-            String leftType = evaluateExpression(bin.getLeft());
+            String leftType  = evaluateExpression(bin.getLeft());
             String rightType = evaluateExpression(bin.getRight());
 
             if (!leftType.equals("সংখ্যা") || !rightType.equals("সংখ্যা")) {

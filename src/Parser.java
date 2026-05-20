@@ -65,6 +65,10 @@ public class Parser {
             return parseDeclaration();
         }
 
+        if (check(TokenType.IF)) {
+            return parseIfStatement();
+        }
+
         if (check(TokenType.IDENTIFIER)) {
             return parseAssignment();
         }
@@ -95,6 +99,53 @@ public class Parser {
         return new AssignmentNode(nameToken.lexeme, expression);
     }
 
+    private IfNode parseIfStatement() {
+        consume(TokenType.IF, "যদি কীওয়ার্ড প্রয়োজন");
+        consume(TokenType.LPAREN, "যদি-এর পরে '(' প্রয়োজন");
+        ExprNode condition = parseComparison();
+        consume(TokenType.RPAREN, "শর্তের পরে ')' প্রয়োজন");
+        consume(TokenType.LBRACE, "শর্তের পরে '{' প্রয়োজন");
+
+        List<StmtNode> thenBranch = parseBlock();
+
+        List<StmtNode> elseBranch = new ArrayList<>();
+        if (match(TokenType.ELSE)) {
+            consume(TokenType.LBRACE, "নাহয়-এর পরে '{' প্রয়োজন");
+            elseBranch = parseBlock();
+        }
+
+        return new IfNode(condition, thenBranch, elseBranch);
+    }
+
+    private List<StmtNode> parseBlock() {
+        List<StmtNode> stmts = new ArrayList<>();
+        while (!check(TokenType.RBRACE) && !isAtEnd()) {
+            try {
+                StmtNode stmt = parseStatement();
+                if (stmt != null) {
+                    stmts.add(stmt);
+                }
+            } catch (ParseError e) {
+                synchronize();
+            }
+        }
+        consume(TokenType.RBRACE, "ব্লকের শেষে '}' প্রয়োজন");
+        return stmts;
+    }
+
+    private ExprNode parseComparison() {
+        ExprNode left = parseExpression();
+
+        if (match(TokenType.EQ, TokenType.NEQ, TokenType.LT,
+                  TokenType.GT, TokenType.LTE, TokenType.GTE)) {
+            Token operator = previous();
+            ExprNode right = parseExpression();
+            return new BinaryNode(left, operator.lexeme, right);
+        }
+
+        return left;
+    }
+
     private ExprNode parseExpression() {
         ExprNode expr = parseTerm();
 
@@ -121,11 +172,11 @@ public class Parser {
 
     private ExprNode parseFactor() {
         if (match(TokenType.NUMBER)) {
-            return new LiteralNode(previous().lexeme, TokenType.NUMBER);
+            return new LiteralNode(previous().value, TokenType.NUMBER);
         }
 
         if (match(TokenType.STRING)) {
-            return new LiteralNode(previous().lexeme, TokenType.STRING);
+            return new LiteralNode(previous().value, TokenType.STRING);
         }
 
         if (match(TokenType.IDENTIFIER)) {
@@ -172,6 +223,7 @@ public class Parser {
             switch (peek().type) {
                 case TYPE_SHONGKHA:
                 case TYPE_BAKKO:
+                case IF:
                 case IDENTIFIER:
                     return;
                 default:

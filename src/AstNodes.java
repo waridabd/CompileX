@@ -81,6 +81,46 @@ class AssignmentNode extends StmtNode {
     }
 }
 
+class IfNode extends StmtNode {
+    private final ExprNode condition;
+    private final List<StmtNode> thenBranch;
+    private final List<StmtNode> elseBranch;
+
+    public IfNode(ExprNode condition, List<StmtNode> thenBranch, List<StmtNode> elseBranch) {
+        this.condition = condition;
+        this.thenBranch = thenBranch;
+        this.elseBranch = elseBranch;
+    }
+
+    public ExprNode getCondition() {
+        return condition;
+    }
+
+    public List<StmtNode> getThenBranch() {
+        return thenBranch;
+    }
+
+    public List<StmtNode> getElseBranch() {
+        return elseBranch;
+    }
+
+    public boolean hasElse() {
+        return elseBranch != null && !elseBranch.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("IfNode{condition=").append(condition);
+        sb.append(", then=").append(thenBranch);
+        if (hasElse()) {
+            sb.append(", else=").append(elseBranch);
+        }
+        sb.append("}");
+        return sb.toString();
+    }
+}
+
 abstract class ExprNode extends AstNode {
 }
 
