@@ -4,6 +4,8 @@ public enum TokenType {
     NUMBER,
     STRING,
     IDENTIFIER,
+    IF,
+    ELSE,
     ASSIGN,
     PLUS,
     MINUS,
