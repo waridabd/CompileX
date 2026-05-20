@@ -65,12 +65,16 @@ public class Parser {
             return parseDeclaration();
         }
 
+        if (check(TokenType.IDENTIFIER)) {
+            return parseAssignment();
+        }
+
         if (check(TokenType.IF)) {
             return parseIfStatement();
         }
 
-        if (check(TokenType.IDENTIFIER)) {
-            return parseAssignment();
+        if (check(TokenType.ELSE)) {
+            throw error(peek(), "নাহলে (else) এর আগে যদি (if) থাকা দরকার");
         }
 
         throw error(peek(), "আপনার সিনট্যাক্স ভুল");
@@ -100,50 +104,39 @@ public class Parser {
     }
 
     private IfNode parseIfStatement() {
-        consume(TokenType.IF, "যদি কীওয়ার্ড প্রয়োজন");
-        consume(TokenType.LPAREN, "যদি-এর পরে '(' প্রয়োজন");
-        ExprNode condition = parseComparison();
-        consume(TokenType.RPAREN, "শর্তের পরে ')' প্রয়োজন");
-        consume(TokenType.LBRACE, "শর্তের পরে '{' প্রয়োজন");
+        consume(TokenType.IF, "যদি (if) কীওয়ার্ড প্রয়োজন");
+        consume(TokenType.LPAREN, "যদি শর্তের আগে '(' প্রয়োজন");
+        ExprNode condition = parseExpression();
+        consume(TokenType.RPAREN, "যদি শর্তের পরে ')' প্রয়োজন");
 
-        List<StmtNode> thenBranch = parseBlock();
+        BlockNode thenBlock = parseBlock();
+        BlockNode elseBlock = null;
 
-        List<StmtNode> elseBranch = new ArrayList<>();
         if (match(TokenType.ELSE)) {
-            consume(TokenType.LBRACE, "নাহয়-এর পরে '{' প্রয়োজন");
-            elseBranch = parseBlock();
+            elseBlock = parseBlock();
         }
 
-        return new IfNode(condition, thenBranch, elseBranch);
+        return new IfNode(condition, thenBlock, elseBlock);
     }
 
-    private List<StmtNode> parseBlock() {
-        List<StmtNode> stmts = new ArrayList<>();
+    private BlockNode parseBlock() {
+        consume(TokenType.LBRACE, "ব্লক শুরু করতে '{' প্রয়োজন");
+
+        List<StmtNode> blockStatements = new ArrayList<>();
+
         while (!check(TokenType.RBRACE) && !isAtEnd()) {
             try {
                 StmtNode stmt = parseStatement();
                 if (stmt != null) {
-                    stmts.add(stmt);
+                    blockStatements.add(stmt);
                 }
             } catch (ParseError e) {
-                synchronize();
+                synchronizeInsideBlock();
             }
         }
-        consume(TokenType.RBRACE, "ব্লকের শেষে '}' প্রয়োজন");
-        return stmts;
-    }
 
-    private ExprNode parseComparison() {
-        ExprNode left = parseExpression();
-
-        if (match(TokenType.EQ, TokenType.NEQ, TokenType.LT,
-                  TokenType.GT, TokenType.LTE, TokenType.GTE)) {
-            Token operator = previous();
-            ExprNode right = parseExpression();
-            return new BinaryNode(left, operator.lexeme, right);
-        }
-
-        return left;
+        consume(TokenType.RBRACE, "ব্লক শেষ করতে '}' প্রয়োজন");
+        return new BlockNode(blockStatements);
     }
 
     private ExprNode parseExpression() {
@@ -172,11 +165,11 @@ public class Parser {
 
     private ExprNode parseFactor() {
         if (match(TokenType.NUMBER)) {
-            return new LiteralNode(previous().value, TokenType.NUMBER);
+            return new LiteralNode(previous().lexeme, TokenType.NUMBER);
         }
 
         if (match(TokenType.STRING)) {
-            return new LiteralNode(previous().value, TokenType.STRING);
+            return new LiteralNode(previous().lexeme, TokenType.STRING);
         }
 
         if (match(TokenType.IDENTIFIER)) {
@@ -216,15 +209,37 @@ public class Parser {
         }
 
         while (!isAtEnd()) {
-            if (previous().type == TokenType.SEMICOLON) {
+            if (previous().type == TokenType.SEMICOLON || previous().type == TokenType.RBRACE) {
                 return;
             }
 
             switch (peek().type) {
                 case TYPE_SHONGKHA:
                 case TYPE_BAKKO:
-                case IF:
                 case IDENTIFIER:
+                case IF:
+                case ELSE:
+                case RBRACE:
+                    return;
+                default:
+                    advance();
+            }
+        }
+    }
+
+    private void synchronizeInsideBlock() {
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON || previous().type == TokenType.RBRACE) {
+                return;
+            }
+
+            switch (peek().type) {
+                case TYPE_SHONGKHA:
+                case TYPE_BAKKO:
+                case IDENTIFIER:
+                case IF:
+                case ELSE:
+                case RBRACE:
                     return;
                 default:
                     advance();
