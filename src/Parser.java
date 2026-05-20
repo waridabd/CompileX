@@ -69,6 +69,10 @@ public class Parser {
             return parseAssignment();
         }
 
+        if (check(TokenType.IF)) {
+            return parseIfStatement();
+        }
+
         throw error(peek(), "আপনার সিনট্যাক্স ভুল");
     }
 
@@ -93,6 +97,38 @@ public class Parser {
         consume(TokenType.SEMICOLON, "স্টেটমেন্টের শেষে সেমিকোলন (;) প্রদান করুন");
 
         return new AssignmentNode(nameToken.lexeme, expression);
+    }
+
+    private IfNode parseIfStatement() {
+        consume(TokenType.IF, "যদি (if) কীওয়ার্ড প্রয়োজন");
+        consume(TokenType.LPAREN, "যদি শর্তের আগে '(' প্রয়োজন");
+        ExprNode condition = parseExpression();
+        consume(TokenType.RPAREN, "যদি শর্তের পরে ')' প্রয়োজন");
+
+        BlockNode thenBlock = parseBlock();
+        BlockNode elseBlock = null;
+
+        if (match(TokenType.ELSE)) {
+            elseBlock = parseBlock();
+        }
+
+        return new IfNode(condition, thenBlock, elseBlock);
+    }
+
+    private BlockNode parseBlock() {
+        consume(TokenType.LBRACE, "ব্লক শুরু করতে '{' প্রয়োজন");
+
+        List<StmtNode> blockStatements = new ArrayList<>();
+
+        while (!check(TokenType.RBRACE) && !isAtEnd()) {
+            StmtNode stmt = parseStatement();
+            if (stmt != null) {
+                blockStatements.add(stmt);
+            }
+        }
+
+        consume(TokenType.RBRACE, "ব্লক শেষ করতে '}' প্রয়োজন");
+        return new BlockNode(blockStatements);
     }
 
     private ExprNode parseExpression() {
@@ -165,7 +201,7 @@ public class Parser {
         }
 
         while (!isAtEnd()) {
-            if (previous().type == TokenType.SEMICOLON) {
+            if (previous().type == TokenType.SEMICOLON || previous().type == TokenType.RBRACE) {
                 return;
             }
 
@@ -173,6 +209,9 @@ public class Parser {
                 case TYPE_SHONGKHA:
                 case TYPE_BAKKO:
                 case IDENTIFIER:
+                case IF:
+                case ELSE:
+                case RBRACE:
                     return;
                 default:
                     advance();
