@@ -3,41 +3,89 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) {
+
         String validProgram =
-                "সংখ্যা বয়স = ৫;\n" +
-                "সংখ্যা মোট = বয়স + ৩ * (২ + ১);\n" +
+                "সংখ্যা বয়স = ৫;\n" +
+                "সংখ্যা মোট = বয়স + ৩ * (২ + ১);\n" +
                 "বাক্য নাম = \"মানুষ\";\n" +
                 "মোট = মোট + ১;\n";
 
         String syntaxErrorProgram =
-                "সংখ্যা বয়স = ৫\n" +
-                "সংখ্যা মোট = বয়স + ;\n" +
+                "সংখ্যা বয়স = ৫\n" +
+                "সংখ্যা মোট = বয়স + ;\n" +
                 "বাক্য নাম = \"মানুষ\";\n" +
                 "মোট = (১ + ২;\n";
 
         String undeclaredProgram =
-                "সংখ্যা বয়স = ৫;\n" +
-                "মোট = বয়স + ২;\n";
+                "সংখ্যা বয়স = ৫;\n" +
+                "মোট = বয়স + ২;\n";
 
         String typeMismatchProgram =
-                "সংখ্যা বয়স = \"মানুষ\";\n" +
+                "সংখ্যা বয়স = \"মানুষ\";\n" +
                 "বাক্য নাম = \"রাফি\";\n";
 
         String duplicateProgram =
-                "সংখ্যা বয়স = ৫;\n" +
-                "সংখ্যা বয়স = ১০;\n";
+                "সংখ্যা বয়স = ৫;\n" +
+                "সংখ্যা বয়স = ১০;\n";
+
+        String invalidCharProgram =
+                "সংখ্যা বয়স = ৫;\n" +
+                "সংখ্যা মোট = বয়স + #;\n";
+
+        String validIfProgram =
+                "সংখ্যা বয়স = ১৮;\n" +
+                "যদি (বয়স > ১৫) {\n" +
+                "সংখ্যা ফলাফল = ১;\n" +
+                "}\n";
+
+        String validIfElseProgram =
+                "সংখ্যা নম্বর = ১০;\n" +
+                "যদি (নম্বর == ১০) {\n" +
+                "সংখ্যা ক = ১;\n" +
+                "} নাহয় {\n" +
+                "সংখ্যা ক = ০;\n" +
+                "}\n";
+
+        String missingParenProgram =
+                "সংখ্যা বয়স = ৫;\n" +
+                "যদি বয়স > ৩ {\n" +
+                "সংখ্যা ফলাফল = ১;\n" +
+                "}\n";
+
+        String missingSemicolonProgram =
+                "সংখ্যা ক = ৫\n" +
+                "সংখ্যা খ = ক + ২;\n";
+
+        String badExpressionProgram =
+                "সংখ্যা ক = ৫;\n" +
+                "সংখ্যা খ = ক + * ২;\n";
+
+        String nestedIfProgram =
+                "সংখ্যা ক = ১০;\n" +
+                "যদি (ক > ৫) {\n" +
+                "যদি (ক > ৮) {\n" +
+                "সংখ্যা ফলাফল = ১;\n" +
+                "}\n" +
+                "}\n";
 
         runTest("সঠিক প্রোগ্রাম", validProgram, true);
         runTest("সিনট্যাক্স ভুল প্রোগ্রাম", syntaxErrorProgram, false);
         runTest("Undeclared variable test", undeclaredProgram, false);
         runTest("Type mismatch test", typeMismatchProgram, false);
         runTest("Duplicate declaration test", duplicateProgram, false);
+        runTest("Invalid character test", invalidCharProgram, false);
+        runTest("Valid if test", validIfProgram, false);
+        runTest("Valid if-else test", validIfElseProgram, false);
+        runTest("Missing parenthesis test", missingParenProgram, false);
+        runTest("Missing semicolon test", missingSemicolonProgram, false);
+        runTest("Bad expression test", badExpressionProgram, false);
+        runTest("Nested if test", nestedIfProgram, false);
     }
 
     private static void runTest(String title, String source, boolean generateCode) {
-        System.out.println("\n==================================================");
+        System.out.println("\n==============");
         System.out.println(title);
-        System.out.println("==================================================");
+        System.out.println("================");
         System.out.println(source);
 
         Lexer lexer = new Lexer(source);
@@ -45,7 +93,7 @@ public class Main {
         lexer.printTokens();
 
         if (lexer.hasErrors()) {
-            System.out.println("লেক্সিকাল ত্রুটি থাকায় পার্সিং শুরু হয়নি।");
+            System.out.println("লেক্সিকাল ত্রুটি থাকায় পার্সিং শুরু হয়নি।");
             return;
         }
 
@@ -54,10 +102,10 @@ public class Main {
 
         System.out.println("========== AST Preview ==========");
         System.out.println(program);
-        System.out.println("=================================");
+        System.out.println("=================");
 
         if (parser.hasErrors()) {
-            System.out.println("সিনট্যাক্স ত্রুটি থাকায় সেমান্টিক বিশ্লেষণ শুরু হয়নি।");
+            System.out.println("সিনট্যাক্স ত্রুটি থাকায় সেমান্টিক বিশ্লেষণ শুরু হয়নি।");
             return;
         }
 
@@ -78,7 +126,7 @@ public class Main {
 
             System.out.println("\n========== Generated Java Code ==========");
             System.out.println(generatedCode);
-            System.out.println("=========================================\n");
+            System.out.println("================\n");
 
             codeGenerator.writeToFile(program, fileName);
             System.out.println("✓ Generated Java file তৈরি হয়েছে: " + fileName);
@@ -97,10 +145,8 @@ public class Main {
                     "javac", "-encoding", "UTF-8", fileName
             );
             compileProcessBuilder.inheritIO();
-
             Process compileProcess = compileProcessBuilder.start();
             int exitCode = compileProcess.waitFor();
-
             if (exitCode == 0) {
                 System.out.println("✓ Generated Java code সফলভাবে compile হয়েছে।");
                 return true;
@@ -118,10 +164,8 @@ public class Main {
         try {
             ProcessBuilder runProcessBuilder = new ProcessBuilder("java", className);
             runProcessBuilder.inheritIO();
-
             Process runProcess = runProcessBuilder.start();
             int exitCode = runProcess.waitFor();
-
             if (exitCode == 0) {
                 System.out.println("✓ Generated Java program সফলভাবে run হয়েছে।");
             } else {
