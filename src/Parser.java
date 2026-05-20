@@ -73,6 +73,10 @@ public class Parser {
             return parseIfStatement();
         }
 
+        if (check(TokenType.ELSE)) {
+            throw error(peek(), "নাহলে (else) এর আগে যদি (if) থাকা দরকার");
+        }
+
         throw error(peek(), "আপনার সিনট্যাক্স ভুল");
     }
 
@@ -121,9 +125,13 @@ public class Parser {
         List<StmtNode> blockStatements = new ArrayList<>();
 
         while (!check(TokenType.RBRACE) && !isAtEnd()) {
-            StmtNode stmt = parseStatement();
-            if (stmt != null) {
-                blockStatements.add(stmt);
+            try {
+                StmtNode stmt = parseStatement();
+                if (stmt != null) {
+                    blockStatements.add(stmt);
+                }
+            } catch (ParseError e) {
+                synchronizeInsideBlock();
             }
         }
 
@@ -200,6 +208,26 @@ public class Parser {
             advance();
         }
 
+        while (!isAtEnd()) {
+            if (previous().type == TokenType.SEMICOLON || previous().type == TokenType.RBRACE) {
+                return;
+            }
+
+            switch (peek().type) {
+                case TYPE_SHONGKHA:
+                case TYPE_BAKKO:
+                case IDENTIFIER:
+                case IF:
+                case ELSE:
+                case RBRACE:
+                    return;
+                default:
+                    advance();
+            }
+        }
+    }
+
+    private void synchronizeInsideBlock() {
         while (!isAtEnd()) {
             if (previous().type == TokenType.SEMICOLON || previous().type == TokenType.RBRACE) {
                 return;
