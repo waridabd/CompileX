@@ -29,65 +29,6 @@ class ProgramNode extends AstNode {
 abstract class StmtNode extends AstNode {
 }
 
-class BlockNode extends StmtNode {
-    private final List<StmtNode> statements;
-
-    public BlockNode(List<StmtNode> statements) {
-        this.statements = statements;
-    }
-
-    public List<StmtNode> getStatements() {
-        return statements;
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("BlockNode{\n");
-        for (StmtNode stmt : statements) {
-            sb.append("    ").append(stmt).append("\n");
-        }
-        sb.append("  }");
-        return sb.toString();
-    }
-}
-
-class IfNode extends StmtNode {
-    private final ExprNode condition;
-    private final BlockNode thenBlock;
-    private final BlockNode elseBlock;
-
-    public IfNode(ExprNode condition, BlockNode thenBlock, BlockNode elseBlock) {
-        this.condition = condition;
-        this.thenBlock = thenBlock;
-        this.elseBlock = elseBlock;
-    }
-
-    public ExprNode getCondition() {
-        return condition;
-    }
-
-    public BlockNode getThenBlock() {
-        return thenBlock;
-    }
-
-    public BlockNode getElseBlock() {
-        return elseBlock;
-    }
-
-    public boolean hasElseBlock() {
-        return elseBlock != null;
-    }
-
-    @Override
-    public String toString() {
-        if (elseBlock == null) {
-            return "IfNode{condition=" + condition + ", then=" + thenBlock + "}";
-        }
-        return "IfNode{condition=" + condition + ", then=" + thenBlock + ", else=" + elseBlock + "}";
-    }
-}
-
 class DeclarationNode extends StmtNode {
     private final String typeName;
     private final String variableName;
