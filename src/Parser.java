@@ -74,7 +74,7 @@ public class Parser {
         }
 
         if (check(TokenType.ELSE)) {
-            throw error(peek(), "নাহলে (else) এর আগে যদি (if) থাকা দরকার");
+            throw error(peek(), "নাহয় (else) এর আগে যদি (if) থাকা দরকার");
         }
 
         throw error(peek(), "আপনার সিনট্যাক্স ভুল");
@@ -106,20 +106,20 @@ public class Parser {
     private IfNode parseIfStatement() {
         consume(TokenType.IF, "যদি (if) কীওয়ার্ড প্রয়োজন");
         consume(TokenType.LPAREN, "যদি শর্তের আগে '(' প্রয়োজন");
-        ExprNode condition = parseExpression();
+        ExprNode condition = parseConditionExpression();
         consume(TokenType.RPAREN, "যদি শর্তের পরে ')' প্রয়োজন");
 
-        BlockNode thenBlock = parseBlock();
-        BlockNode elseBlock = null;
+        List<StmtNode> thenBranch = parseBlockStatements();
+        List<StmtNode> elseBranch = new ArrayList<>();
 
         if (match(TokenType.ELSE)) {
-            elseBlock = parseBlock();
+            elseBranch = parseBlockStatements();
         }
 
-        return new IfNode(condition, thenBlock, elseBlock);
+        return new IfNode(condition, thenBranch, elseBranch);
     }
 
-    private BlockNode parseBlock() {
+    private List<StmtNode> parseBlockStatements() {
         consume(TokenType.LBRACE, "ব্লক শুরু করতে '{' প্রয়োজন");
 
         List<StmtNode> blockStatements = new ArrayList<>();
@@ -136,7 +136,19 @@ public class Parser {
         }
 
         consume(TokenType.RBRACE, "ব্লক শেষ করতে '}' প্রয়োজন");
-        return new BlockNode(blockStatements);
+        return blockStatements;
+    }
+
+    private ExprNode parseConditionExpression() {
+        ExprNode left = parseExpression();
+
+        if (match(TokenType.EQ, TokenType.NEQ, TokenType.LT, TokenType.GT, TokenType.LTE, TokenType.GTE)) {
+            Token operator = previous();
+            ExprNode right = parseExpression();
+            return new BinaryNode(left, operator.lexeme, right);
+        }
+
+        return left;
     }
 
     private ExprNode parseExpression() {
@@ -165,11 +177,11 @@ public class Parser {
 
     private ExprNode parseFactor() {
         if (match(TokenType.NUMBER)) {
-            return new LiteralNode(previous().lexeme, TokenType.NUMBER);
+            return new LiteralNode(previous().value, TokenType.NUMBER);
         }
 
         if (match(TokenType.STRING)) {
-            return new LiteralNode(previous().lexeme, TokenType.STRING);
+            return new LiteralNode(previous().value, TokenType.STRING);
         }
 
         if (match(TokenType.IDENTIFIER)) {
@@ -177,7 +189,7 @@ public class Parser {
         }
 
         if (match(TokenType.LPAREN)) {
-            ExprNode expr = parseExpression();
+            ExprNode expr = parseConditionExpression();
             consume(TokenType.RPAREN, "বন্ধনী সঠিকভাবে সম্পূর্ণ হয়নি");
             return expr;
         }
